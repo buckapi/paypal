@@ -205,37 +205,82 @@
     }
 
     function calculateReceived() {
-        const amountToSend = parseFloat(document.getElementById('amountToSend').value);
-        const resultContainer = document.getElementById('received-result');
-        const commissions = document.querySelector('input[name="receivedCommissions"]:checked').value;
+    const amountToSendInput = document.getElementById('amountToSend');
+    const resultContainer = document.getElementById('received-result');
+    const commissionsInput = document.querySelector('input[name="receivedCommissions"]:checked');
 
-        if (isNaN(amountToSend) || amountToSend <= 0) {
-            resultContainer.innerText = "Por favor, introduce un monto válido.";
-            return;
-        }
-
-        let finalAmount = amountToSend;
-
-        const firstFee = finalAmount * 0.054 + 0.30;
-        finalAmount -= firstFee;
-
-        let secondFee = 0;
-        if (commissions == 2) {
-            secondFee = finalAmount * 0.054 + 0.30;
-            finalAmount -= secondFee;
-        }
-
-        const cambistaFee = finalAmount * 0.1789;
-        finalAmount -= cambistaFee;
-
-        resultContainer.innerHTML = `
-            <p><strong>Resultados:</strong></p>
-            <p>Monto enviado: ${amountToSend.toFixed(2)} USD</p>
-            <p>Primera comisión (PayPal, 5.4% + $0.30): ${firstFee.toFixed(2)} USD</p>
-            <p>Segunda comisión (PayPal, 5.4% + $0.30): ${secondFee.toFixed(2)} USD</p>
-            <p>Comisión del cambista (17.89%): ${cambistaFee.toFixed(2)} USD</p>
-            <p class="total-text"><strong>Monto recibido:</strong> ${finalAmount.toFixed(2)} USD</p>
-        `;
+    // Validar entrada de monto a enviar
+    if (!amountToSendInput || isNaN(amountToSendInput.value) || parseFloat(amountToSendInput.value) <= 0) {
+        displayError(resultContainer, "Por favor, introduce un monto válido.");
+        return;
     }
+
+    const amountToSend = parseFloat(amountToSendInput.value);
+
+    // Validar selección de número de comisiones
+    if (!commissionsInput) {
+        displayError(resultContainer, "Por favor, selecciona el número de comisiones.");
+        return;
+    }
+
+    const commissions = parseInt(commissionsInput.value, 10);
+
+    // Cálculo de comisiones
+    const paypalRate = 0.054; // Comisión de PayPal (5.4%)
+    const fixedFee = 0.30; // Comisión fija de PayPal
+    const cambistaRate = 0.1789; // Comisión del cambista (17.89%)
+
+    let finalAmount = amountToSend;
+    const firstFee = calculateFee(finalAmount, paypalRate, fixedFee);
+    finalAmount -= firstFee;
+
+    let secondFee = 0;
+    if (commissions === 2) {
+        secondFee = calculateFee(finalAmount, paypalRate, fixedFee);
+        finalAmount -= secondFee;
+    }
+
+    const cambistaFee = finalAmount * cambistaRate;
+    finalAmount -= cambistaFee;
+
+    // Validar monto final no negativo
+    if (finalAmount < 0) {
+        displayError(resultContainer, "El monto recibido no puede ser negativo. Revisa los valores ingresados.");
+        return;
+    }
+
+    // Mostrar resultados
+    displayResults(resultContainer, {
+        amountToSend,
+        firstFee,
+        secondFee,
+        cambistaFee,
+        finalAmount,
+    });
+}
+
+// Función auxiliar para calcular comisiones
+function calculateFee(amount, rate, fixed) {
+    return amount * rate + fixed;
+}
+
+// Función auxiliar para mostrar errores
+function displayError(container, message) {
+    container.innerHTML = `<p class="text-danger">${message}</p>`;
+}
+
+// Función auxiliar para mostrar resultados
+function displayResults(container, { amountToSend, firstFee, secondFee, cambistaFee, finalAmount }) {
+    container.innerHTML = `
+        <p><strong>Resultados:</strong></p>
+        <p>Monto enviado: ${amountToSend.toFixed(2)} USD</p>
+        <p>Primera comisión (PayPal, 5.4% + $0.30): ${firstFee.toFixed(2)} USD</p>
+        <p>Segunda comisión (PayPal, 5.4% + $0.30): ${secondFee.toFixed(2)} USD</p>
+        <p>Comisión del cambista (17.89%): ${cambistaFee.toFixed(2)} USD</p>
+        <p class="total-text"><strong>Monto recibido:</strong> ${finalAmount.toFixed(2)} USD</p>
+    `;
+}
+
+
 </script>
 
